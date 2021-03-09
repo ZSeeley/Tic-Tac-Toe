@@ -1,0 +1,196 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* for down the road when the comp will try to block player 1's move, the board needs to be in 25 sqaures (with a border), to have the 9 squares for selections. 
+the 25 sq board needs to be converted to 9 when working with the functions of making/picking moves. : are the border signs, and the - is the blank sqaures. if the board is only 9 squares, 
+whenthe comp looks for an adjacent 2 of the same signs, it will read postions 3 and 4 and block postion 5, which is wrong. once the comp sees a border sign next to a sign (x or O), 
+it will move on to check the other postions.
+
+	:,:,:,:,:,
+	:,-,-,-,:,
+	:,-,-,-,:,
+	:,-,-,-,:,
+	:,:,:,:,:,
+
+*/
+
+enum{ X, O, Border, Blank }; // const signs for the game to run, using enum allows for cleaner code and less lines
+enum{ Player1win, Compwin, Draw }; // const for game outcomes
+
+const int Convertboardto9[9] = // function that coverts the 25 sq board to 9 for functions below
+{
+	6,7,8,
+	11,12,13,
+	16,17,18
+};
+
+void startBoard(int* board) // this starts the board, it shows intially the 25 sq's, then runs the converting function to 9 sq's
+{
+	int index = 0;
+
+	for (index = 0; index < 25; ++index) // board is originally 25 sqaures with the border
+	{
+		board[index] = Border;
+	}
+	for (index = 0; index < 9; ++index) // we need to convert it to 9 valid sqaures for selection
+	{
+		board[Convertboardto9[index]] = Blank;
+	}
+
+}
+
+void PrintBoard(const int* board) // this prints the board without shwoing the boarder, and shows the picks made by the human and computer.
+{
+	int index = 0;
+	char signs[] = "OX|-";
+
+	printf("\nGame Board:\n\n");
+
+	for (index = 0; index < 9; ++index)
+	{
+		if (index != 0 && index % 3 == 0) // after every 3 sqs, print new line
+		{
+			printf("\n  ---|---|---\n");
+		}
+
+		printf("%4c", signs[board[Convertboardto9[index]]]); //prints the 4 signs in each line (O X - and the border)
+	}
+	printf("\n");
+
+}
+
+int HasBlank(const int* board) // this checks to see if there is a valid sqaure left to pick on the board
+{
+	int index = 0;
+
+	for (index = 0; index < 9; ++index) 
+	{
+		if (board[Convertboardto9[index]] == Blank) return 1;
+	}
+	return 0;
+}
+
+void MakeMove(int* board, const int sq, const Turn) // code that places the corresponding x or O depending on whose turn it is
+{
+	board[sq] = Turn;
+
+}
+
+int GetPlayerMove(const int* board) // code to get the player 1 input and to check if move is valid
+{
+	char UserInput[4];
+	int validmove = 0;
+	int move = -1;
+
+	while (validmove == 0)
+	{
+
+		printf("\nPlease enter a move from 1 to 9: ");
+		fgets(UserInput, 4, stdin); // removes invalid inputs in 4
+
+		if (strlen(UserInput) != 2) // if string length is longer than 2 ( # chosen and enter), it returns an error
+		{
+			printf("\nInvalid string length()\n");
+			continue;
+		}
+
+		if (sscanf_s(UserInput, "%d", &move) != 1) //this is used to give an error if the number was not passed, it resets the move and asks again for your selection.
+		{
+			move = -1;
+			printf("\nMove was not passed\n");
+			continue;
+		}
+
+		if (move < 1 || move > 9) // this is used to give an error if the number is great than 9 and less than 0, gives an error
+		{
+			move = -1;
+			printf("\nInvalid range, must choose 1 - 9\n");
+			continue;
+		}
+
+		move--; // since the game board is stores as 0 to 8, and the moves is asked 1 to 9, we need to decrement the move by 1. 
+
+		if (board[Convertboardto9[move]] != Blank) // this checks if the sqaure entered was already picked, if picked it gives an error and ask for another selection.
+		{
+			move = -1;
+			printf("\nSquare already picked, please pick again\n");
+			continue;
+		}
+		validmove = 1; // if the above errors are not found, the move is valid, this gets passed to the printf
+	}
+	printf("\nPlayer 1 move is: %d\n", (move + 1)); // prints move is and the selection made by the player
+
+	return Convertboardto9[move];
+}
+
+int GetCompMove(const int* board) 
+{
+	int index = 0;
+	int numBlank = 0;
+	int availableMoves[9];
+	int randMove = 0;
+
+	for (index = 0; index < 9; ++index)
+	{
+		if (board[Convertboardto9[index]] == Blank) 
+		{
+			availableMoves[numBlank++] = Convertboardto9[index];
+		};
+	}
+
+	randMove = (rand() % numBlank); // this gives a random move selected from the number of blank available moves
+	printf("\nComp move is: %d\n", (randMove + 1)); // this will print the comp pick in the console window
+	return availableMoves[randMove];
+	
+}
+
+void RunGame() 
+{
+	int GameOver = 0;
+	int Turn = O;
+	int LastMoveMade = 0;
+	int board[25];
+
+	startBoard(&board[0]);
+	PrintBoard(&board[0]);
+
+	while (!GameOver)
+	{
+		if (Turn == O) // if move is not O, then it is player 1 move, if move is O its computers turn
+		{
+			LastMoveMade = GetPlayerMove(&board[0]);
+			MakeMove(&board[0], LastMoveMade, Turn);
+			Turn = X;
+		}
+		else
+		{
+			LastMoveMade = GetCompMove(&board[0]);
+			MakeMove(&board[0], LastMoveMade, Turn);
+			Turn = O;
+			PrintBoard(&board[0]); // prints game board with comp pick
+		}
+
+		// if three in a row is found in game, print winner is player1 X / computer O
+				
+		if (!HasBlank(board)) // if no more moves, game is a draw	
+		{
+			GameOver = 1;
+			printf("\nThe game is a draw\n");
+			printf("\nThe game is over!\n");
+		}
+	}
+		
+}
+
+int main()
+{
+
+	srand(time(NULL)); // generates random number, using time makes the number not repeat itself
+
+	RunGame();
+
+	return 0;
+}
+
+
